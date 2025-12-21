@@ -17,11 +17,13 @@ let localStream;
 
 async function startLocalStream(){
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localVideo.srcObject = localStream;
+    localVideo.srcObject = localStream; 
+    // Play this live media stream inside the video element Your camera video appears on the screen.
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 }
 
 pc.ontrack = (event) => {
+    console.log("🔥 Remote track received");
     remoteVideo.srcObject = event.streams[0];
 }
 
@@ -31,19 +33,21 @@ pc.onicecandidate = (event) => {
     }
 }
 
-socket.onmessage = async msg => {
+socket.onmessage = async (msg) => {
     const data = JSON.parse(msg.data);
 
-    if(data.offer){
-        await pc.setRemoteDescription(data.offer);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.send(JSON.stringify({answer}));
+    if(data.offer){ // The other peer started the call
+        await startLocalStream();
+        await pc.setRemoteDescription(data.offer);//This is the offer from the other peer 
+        //📌Remote = coming from the other user
+        const answer = await pc.createAnswer();//Generates an SDP answer This says:“Okay, I accept your offer and here is my response”
+        await pc.setLocalDescription(answer); // This is how I will send/receive media
+        socket.send(JSON.stringify({answer})); // Sends the answer back to the original caller
     }
     if(data.answer){
         await pc.setRemoteDescription(data.answer);
     }
-    if(data.ice){
+    if(data.ice && pc.remoteDescription) {
         await pc.addIceCandidate(data.ice);
     }
 };
