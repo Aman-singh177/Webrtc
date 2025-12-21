@@ -1,4 +1,9 @@
-const socket = new WebSocket('ws://localhost:3000');
+const socket = new WebSocket(
+    location.protocol === "https:"
+      ? "wss://" + location.host
+      : "ws://" + location.host
+);
+  
 const pc = new RTCPeerConnection({
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" }
